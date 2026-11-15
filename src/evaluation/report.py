@@ -162,9 +162,10 @@ def gallery(summary):
             why = [(f["rule_id"], f["explanation"] if f["explanation"] != f"violates {f['rule_id']}" else "") for f in fails]
             pair = ad_card(r["first_ad"], r["brief"], "rejected", rejected=True,
                            quotes=[f["quote"] for f in fails], why=why or [(c, "") for c in r["caught"]])
-        tag = "approved" + (f" · attempt {r['attempts']}" if r["attempts"] > 1 else "")
-        final_card = (render_ad(r["final_ad"], r["final_creative"], tag) if r.get("final_creative")
-                      else ad_card(r["final_ad"], r["brief"], tag))
+        held = r["state"] != "APPROVED"
+        tag = ("held for human" if held else "approved") + (f" · attempt {r['attempts']}" if r["attempts"] > 1 else "")
+        final_card = (render_ad(r["final_ad"], r["final_creative"], tag, rejected=held) if r.get("final_creative")
+                      else ad_card(r["final_ad"], r["brief"], tag, rejected=held))
         if pair and r.get("first_creative"):
             fails = deterministic.failures(deterministic.check(r["first_ad"]))
             caught = ", ".join(r["caught"])
