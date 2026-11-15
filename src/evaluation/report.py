@@ -355,7 +355,6 @@ li.ok{{color:var(--ok)}} li.bad{{color:var(--bad)}} li.warn{{color:var(--warn)}}
 <p class="dim" style="font-size:13px">Targets (prototype acceptance, not certification): 0 missed · ≥80% safe completion · ≤2 avg attempts · control approved first try · 0 invariant breaches.</p>
 {breaches_section(summary)}
 {creative_diversity(summary)}
-{try_it_section()}
 {gallery(summary)}
 {blocked_gallery(probes)}
 <h2>Briefs</h2><p class="sub">Every unsafe brief should still end as a safe ad. "Why" explains each decision from the trace.</p>
