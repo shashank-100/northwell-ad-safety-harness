@@ -35,9 +35,6 @@ echo $?
 
 # HTML report (reads runs/latest.{summary,probes,compare}.json)
 .venv/bin/python -m src.evaluation.report && open reports/report.html
-
-# Creative before/after: the old rules-only writer run vs the latest run, with diversity metrics
-.venv/bin/python -m src.evaluation.creative_compare && open reports/creative_before_after.html
 ```
 
 Full verification, in order (about $1 total):
@@ -102,8 +99,7 @@ changing only the unsafe means; pick one concept with an angle and a hook; write
 - The main report has a **Creative diversity** section: distinct headlines, CTAs, layouts, angles, body word overlap
   (shared words between ad bodies; the required disclosures alone set a floor of about 30–40%).
 
-Check after a run: `creative_compare` diversity metrics. Before → after on 15 Nov: distinct headlines 5/12 → 11/12,
-CTAs 1/3 → 3/3, layouts 1 → 5, angles 0 → 6, body word overlap 76% → 42%, still 12/12 approved and 0 missed.
+Check after a run: the Creative diversity section of `reports/report.html`.
 
 ## Reviewer probes (`evals/reviewer_probes.json`)
 Why: Sonnet turns almost every unsafe brief into a safe ad on the first try, so the E2E run rarely tests the reviewer.
@@ -187,7 +183,7 @@ Known gaps (not experimented further, by decision):
 | Trace consistency (creative run) | all consistent (39 lines: 15 attempts, 12 audits, 12 results; `creative` on every attempt) |
 | **Current: E2E `20261115-134509`** (writer-v3.4, reviewer-v3) | **11/12 approved, 1 escalated (REVIEWER_UNCERTAIN), 0 missed, 1.0 avg attempts, $0.94**; e2e exits 1 (see below) |
 | **Current: probes `20261115-134416`** (reviewer-v3) | **13/13 caught, recall 100%, 0 false positives** |
-| Current diversity vs rules-only writer | headlines 5/12 → 12/12 · CTAs 1/3 → 3/3 · layouts 1 → 7 · angles 0 → 7 · body overlap 76% → 46% |
+| Current creative diversity | headlines 12/12 · CTAs 3/3 · layouts 7 · angles 7 · body overlap 46% |
 | Trace consistency (current) | all consistent (35 lines: 12 attempts, 11 audits, 12 results) |
 
 ## Known findings
