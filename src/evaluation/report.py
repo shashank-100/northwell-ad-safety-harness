@@ -163,17 +163,12 @@ Unsafe briefs on the left, the safe ad the pipeline shipped on the right. Revise
 
 def build(summary, probes, cmp):
     m = summary["metrics"]
-    # e2e counts expectation mismatches (e.g. a safe escalation) in the same list as invariant breaches; show them apart
-    all_breaches = [b for r in summary["rows"] for b in r.get("breaches", [])]
-    expect_misses = sum(b.startswith("EXPECT") for b in all_breaches)
-    real_breaches = len(all_breaches) - expect_misses
     briefs = {b["id"]: b["brief"] for b in json.loads((ROOT / "evals" / "briefs.json").read_text())}
     for r in summary["rows"]:
         r.setdefault("brief", briefs.get(r["id"], ""))
     tiles = "".join([
         tile("Missed violations", m["missed_violations"], m["missed_violations"] == 0),
-        tile("Invariant breaches (I1–I9)", real_breaches, real_breaches == 0),
-        tile("Escalated vs. expected", expect_misses, True),
+        tile("Invariant breaches", m["invariant_breaches"], m["invariant_breaches"] == 0),
         tile("Safe completion", m["safe_completion"], (lambda a, b: int(a) / int(b))(*m["safe_completion"].split("/")) >= 0.8),
         tile("Avg attempts", m["avg_attempts"], m["avg_attempts"] <= 2),
         tile("Control first try", "yes" if m.get("control_first_try") else "no", m.get("control_first_try", False)),
