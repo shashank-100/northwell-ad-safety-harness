@@ -8,6 +8,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
+from src.evaluation.creative import CSS as CREATIVE_CSS, render_ad
 from src.policy import deterministic
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -120,9 +121,16 @@ def gallery(summary):
             pair = ad_card(r["first_ad"], r["brief"], "rejected", rejected=True,
                            quotes=[f["quote"] for f in fails], why=why or [(c, "") for c in r["caught"]])
         tag = "approved" + (f" · attempt {r['attempts']}" if r["attempts"] > 1 else "")
+        final_card = (render_ad(r["final_ad"], r["final_creative"], tag) if r.get("final_creative")
+                      else ad_card(r["final_ad"], r["brief"], tag))
+        if pair and r.get("first_creative"):
+            fails = deterministic.failures(deterministic.check(r["first_ad"]))
+            caught = ", ".join(r["caught"])
+            pair = render_ad(r["first_ad"], r["first_creative"], "rejected: " + caught, rejected=True,
+                             marked_html=marked(r["first_ad"]["body"], [f["quote"] for f in fails]))
         cards += f"""<div class="slot"><div class="ask"><span class="lbl">Brief <code>{esc(r['id'])}</code></span>
 &ldquo;{esc(r['brief'][:140])}{'…' if len(r['brief']) > 140 else ''}&rdquo;</div>
-<div class="pair">{pair}{ad_card(r['final_ad'], r['brief'], tag)}</div></div>"""
+<div class="pair">{pair}{final_card}</div></div>"""
     return f"""<h2>The ads</h2><p class="sub">What would actually run: the approved ad for every brief, as a feed card.
 Unsafe briefs on the left, the safe ad the pipeline shipped on the right. Revised ads show the rejected first draft.</p>
 <div class="gallery">{cards}</div>"""
@@ -240,6 +248,7 @@ code{{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--lin
 .card footer{{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 12px;font-size:11.5px;color:#777}}
 .cta{{background:#1f3d2c;color:#fff;font-weight:600;font-size:12.5px;padding:7px 13px;border-radius:8px}}
 @media (max-width:700px){{.slot{{grid-template-columns:1fr}} .card{{width:100%}}}}
+{CREATIVE_CSS}
 </style></head><body><main>
 <h1>Northwell Rx ad safety eval</h1>
 <p class="sub meta">Run <code>{esc(summary['run_id'])}</code> policy <code>{esc(summary['policy_version'])}</code>

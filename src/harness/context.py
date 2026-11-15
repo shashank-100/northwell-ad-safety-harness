@@ -25,5 +25,9 @@ def writer_context(brief, previous_ad=None, violations=None):
     return msg
 
 
-def reviewer_context(brief, ad):
-    return f"<brief>\n{escape(brief)}\n</brief>\n\nGenerated ad:\n{_ad_block(ad)}"
+def reviewer_context(brief, ad, visual=None):
+    msg = f"<brief>\n{escape(brief)}\n</brief>\n\nGenerated ad:\n{_ad_block(ad)}"
+    if visual:
+        msg += ("\n\nPlanned visual:\n<visual>\n"
+                + escape(json.dumps(visual, indent=2, ensure_ascii=False)) + "\n</visual>")
+    return msg

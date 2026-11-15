@@ -41,9 +41,11 @@ def diff_metrics(base, cur, checks):
             rows.append({"metric": key, "base": b, "cur": c, "status": "n/a"})
             continue
         regressed = c > b if worse == "up" else c < b
-        if key in ("total_cost",) and regressed and c <= b * 1.5:  # cost noise under +50% is not a regression
-            regressed = False
-        status = ("FAIL" if hard else "WARN") if regressed else ("better" if c != b else "same")
+        improved = c < b if worse == "up" else c > b
+        if key == "total_cost" and regressed and c <= b * 1.5:  # cost noise under +50% is not a regression
+            status = "noise"
+        else:
+            status = ("FAIL" if hard else "WARN") if regressed else ("better" if improved else "same")
         rows.append({"metric": key, "base": b, "cur": c, "status": status})
     return rows
 

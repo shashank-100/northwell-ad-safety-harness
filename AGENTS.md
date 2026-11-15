@@ -35,6 +35,9 @@ echo $?
 
 # HTML report (reads runs/latest.{summary,probes,compare}.json)
 .venv/bin/python -m src.evaluation.report && open reports/report.html
+
+# Creative before/after: the old rules-only writer run vs the latest run, with diversity metrics
+.venv/bin/python -m src.evaluation.creative_compare && open reports/creative_before_after.html
 ```
 
 Full verification, in order (about $1 total):
@@ -80,6 +83,21 @@ Targets (prototype acceptance, not certification):
 | I8 Policy unchanged | Every attempt carries the pinned `policy_version` + `policy_fingerprint` |
 | I9 Approval needs every gate | Final attempt decision is `approve` **and** the approved ad passes a fresh det check |
 | Missed violations | Separate Opus audit (all rules, no shared context) + det re-check on every approved ad |
+
+## Creative quality (writer-v3.1-creative)
+The writer gets positive creative direction, not just rules: find the brief's marketing intent and keep it while
+changing only the unsafe means; pick one concept with an angle and a hook; write a structured visual spec
+(layout, palette, typeface, art direction) from `src/agents/creative_spec.py`. **Policy files are untouched**: same
+`POLICY_FINGERPRINT`, same deterministic checks, same reviewer rules.
+- The writer returns `{intent, concept, angle, hook, headline, body, cta, visual}`. Only `headline/body/cta` go
+  through the policy engine; the concept is stored as `creative` on every trace attempt.
+- The reviewer also sees the planned visual in `<visual>` tags. It can't quote it, so a visual that breaks a rule
+  must be marked `uncertain` and fails closed to `NEEDS_HUMAN`.
+- `src/evaluation/creative.py` renders 8 different compositions (poster, chat, steps, note, calendar, phone, split,
+  doorstep). The artwork only contains the checked ad copy plus fixed neutral UI strings.
+
+Check after a run: `creative_compare` diversity metrics. Before → after on 15 Nov: distinct headlines 5/12 → 11/12,
+CTAs 1/3 → 3/3, layouts 1 → 5, angles 0 → 6, body word overlap 76% → 42%, still 12/12 approved and 0 missed.
 
 ## Reviewer probes (`evals/reviewer_probes.json`)
 Why: Sonnet turns almost every unsafe brief into a safe ad on the first try, so the E2E run rarely tests the reviewer.
@@ -157,8 +175,17 @@ Known gaps (not experimented further, by decision):
 | **Final probes `20261115-120851`** | **13/13 caught, recall 100%, precision 71%, 0 false positives, 0 invalid, $0.42** |
 | Compare final vs baseline | PASS, 0 warnings |
 | Trace consistency check | all consistent (37 trace lines: 13 attempts, 12 audits, 12 results) |
+| **Creative E2E `20261115-123927`** (writer-v3.1, reviewer-v3) | **12/12 approved, 0 missed, 0 breaches, 1.25 avg attempts, $0.97** |
+| **Creative probes `20261115-124252`** (reviewer-v3) | **13/13 caught, recall 100%, precision 71%, 0 false positives, $0.31** |
+| Compare creative run vs baseline | PASS, 1 warning (avg attempts 1.17 → 1.25: bolder copy, more caught slips) |
+| Trace consistency (creative run) | all consistent (39 lines: 15 attempts, 12 audits, 12 results; `creative` on every attempt) |
 
 ## Known findings
+- **Creative vs safety tension, caught by the eval.** A creative smoke run turned "target prom" into "Save the date…
+  Wedding invites are landing." The production reviewer approved it; the independent auditor flagged it as an implied
+  before/after timeline ("look different by the big day"). The fix went into the writer's direction (no
+  appearance deadlines), not the checks. Reviewer vs auditor disagreement on event-deadline hooks is worth watching.
+- Some repetition remains in the creative run: "You're allowed to ask for help" is the headline for two briefs.
 - `FDA_CLAIM` regex flags the honest disclosure **"Compounded, not FDA-approved"**: a fail-closed false positive. The writer
   rephrased and passed on attempt 2. Open decision: allow negated disclosures, or keep it strict.
 - `body_shaming` was audited as borderline in one run ("Feeling ready for a change?"). Worth a human look.

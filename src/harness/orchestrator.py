@@ -46,6 +46,7 @@ def run(brief_id, brief, run_id=None, tracer=None):
         result = {"run_id": run_id, "brief_id": brief_id, "brief": brief, "state": state.value,
                   "failure_category": category, "attempts": attempt, "history": history,
                   "final_ad": history[-1]["writer_output"] if history and history[-1]["writer_output"] else None,
+                  "final_creative": history[-1]["creative"] if history else None,
                   "cost": round(total_cost, 4), "states": [s.value for s in m.history]}
         tracer.record(kind="result", **{k: v for k, v in result.items() if k != "history"})
         return result
@@ -53,7 +54,7 @@ def run(brief_id, brief, run_id=None, tracer=None):
     for attempt in range(1, MAX_ATTEMPTS + 1):
         rec = {"brief_id": brief_id, "attempt_id": attempt, "policy_version": POLICY_VERSION,
                "policy_fingerprint": POLICY_FINGERPRINT, "writer_model": writer.MODEL,
-               "writer_prompt_version": writer.PROMPT_VERSION, "writer_output": None,
+               "writer_prompt_version": writer.PROMPT_VERSION, "writer_output": None, "creative": None,
                "deterministic_results": None, "reviewer_model": None, "reviewer_prompt_version": None,
                "reviewer_feedback": None, "reviewer_raw": None, "decision": None, "tokens": {},
                "latency_ms": {}, "estimated_cost": 0.0}
@@ -68,7 +69,7 @@ def run(brief_id, brief, run_id=None, tracer=None):
             m.to(State.FAILED)
             return finish_failed(m, tracer, run_id, brief_id, brief, history, total_cost, e.category, attempt)
         total_cost += w["cost"]
-        rec.update(writer_output=w["data"], estimated_cost=w["cost"])
+        rec.update(writer_output=w["data"], creative=w.get("creative"), estimated_cost=w["cost"])
         rec["tokens"]["writer"], rec["latency_ms"]["writer"] = w["tokens"], w["latency_ms"]
 
         m.to(State.VALIDATING)
@@ -83,14 +84,15 @@ def run(brief_id, brief, run_id=None, tracer=None):
             if attempt == MAX_ATTEMPTS:
                 return finish(State.NEEDS_HUMAN, "RETRY_EXHAUSTED", attempt)
             m.to(State.REVISION_REQUIRED)
-            previous_ad = w["data"] if category == "POLICY_VIOLATION" else None
+            previous_ad = {**w["data"], **(w.get("creative") or {})} if category == "POLICY_VIOLATION" else None
             feedback = det_fail if previous_ad is not None else None
             continue
 
         m.to(State.REVIEWING)
         rec.update(reviewer_model=reviewer.MODEL, reviewer_prompt_version=reviewer.PROMPT_VERSION)
         try:
-            r = reviewer.review(reviewer_context(brief, w["data"]), POLICY_VERSION)
+            r = reviewer.review(reviewer_context(brief, w["data"], (w.get("creative") or {}).get("visual")),
+                                POLICY_VERSION)
         except InfraError as e:
             rec["decision"] = f"infra:{e.category}"
             tracer.record(kind="attempt", **rec, error=str(e))
@@ -124,7 +126,8 @@ def run(brief_id, brief, run_id=None, tracer=None):
         if attempt == MAX_ATTEMPTS:  # invariant 5
             return finish(State.NEEDS_HUMAN, "RETRY_EXHAUSTED", attempt)
         m.to(State.REVISION_REQUIRED)
-        previous_ad, feedback = w["data"], [v.model_dump() for v in review.violations]
+        previous_ad = {**w["data"], **(w.get("creative") or {})}
+        feedback = [v.model_dump() for v in review.violations]
 
     raise AssertionError("unreachable: loop always returns")
 

@@ -95,3 +95,33 @@ REVIEWER_JSON_SCHEMA = {
     "required": ["decision", "violations", "uncertain"],
     "additionalProperties": False,
 }
+
+
+def writer_json_schema():
+    """Writer output: the ad (checked by policy) plus the creative concept and visual spec (rendering + review)."""
+    from src.agents.creative_spec import ANGLES, HOOKS, LAYOUTS, PALETTES, TYPEFACES
+    return {
+        "type": "object",
+        "properties": {
+            "intent": {"type": "string", "description": "The marketing goal behind the brief, restated safely in one line."},
+            "concept": {"type": "string", "description": "A short name for this creative idea."},
+            "angle": {"enum": list(ANGLES)},
+            "hook": {"enum": list(HOOKS)},
+            "headline": {"type": "string"},
+            "body": {"type": "string"},
+            "cta": {"type": "string"},
+            "visual": {
+                "type": "object",
+                "properties": {
+                    "layout": {"enum": list(LAYOUTS)},
+                    "palette": {"enum": list(PALETTES)},
+                    "typeface": {"enum": list(TYPEFACES)},
+                    "art_direction": {"type": "string", "description": "One sentence: what the image shows."},
+                },
+                "required": ["layout", "palette", "typeface", "art_direction"],
+                "additionalProperties": False,
+            },
+        },
+        "required": ["intent", "concept", "angle", "hook", "headline", "body", "cta", "visual"],
+        "additionalProperties": False,
+    }

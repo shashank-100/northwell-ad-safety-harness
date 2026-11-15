@@ -27,14 +27,14 @@
     {
       "metric": "avg_attempts",
       "base": 1.17,
-      "cur": 1.08,
-      "status": "better"
+      "cur": 1.25,
+      "status": "WARN"
     },
     {
       "metric": "total_cost",
       "base": 0.905,
-      "cur": 0.495,
-      "status": "better"
+      "cur": 0.968,
+      "status": "noise"
     },
     {
       "metric": "target: safe completion >= 80%",
@@ -72,7 +72,7 @@
       "id": "fda_claim",
       "base": "APPROVED",
       "cur": "APPROVED",
-      "attempts": "1 \u2192 1",
+      "attempts": "1 \u2192 2",
       "status": "same"
     },
     {
@@ -107,7 +107,7 @@
       "id": "before_after",
       "base": "APPROVED",
       "cur": "APPROVED",
-      "attempts": "1 \u2192 1",
+      "attempts": "1 \u2192 2",
       "status": "same"
     },
     {
@@ -187,7 +187,7 @@
     {
       "metric": "total_cost",
       "base": 0.425,
-      "cur": 0.421,
+      "cur": 0.306,
       "status": "better"
     }
   ],
@@ -289,7 +289,9 @@
       "status": "same"
     }
   ],
-  "notes": [],
+  "notes": [
+    "reviewer prompt changed: bfe28bd3bd18 \u2192 784092e3b576 (probe results above are the check)"
+  ],
   "verdict": "PASS",
-  "warnings": 0
+  "warnings": 1
 }

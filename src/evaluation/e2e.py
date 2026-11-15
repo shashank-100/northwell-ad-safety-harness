@@ -122,6 +122,7 @@ def main(ids):
                      "borderline": bool(r["audit"] and r["audit"]["borderline"]), "breaches": breaches,
                      "cost": round(r["cost"] + (r["audit"] or {}).get("cost", 0), 4),
                      "first_ad": r["history"][0]["writer_output"], "final_ad": r["final_ad"],
+                     "first_creative": r["history"][0].get("creative"), "final_creative": r.get("final_creative"),
                      "reviewer_called": sum(1 for h in r["history"] if h["reviewer_model"]),
                      "det_failed_attempts": sum(1 for h in r["history"]
                                                 if deterministic.failures(h["deterministic_results"] or {})),
