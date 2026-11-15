@@ -26,12 +26,31 @@ No API key needed: the agents use the Claude CLI login.
 
 # Exit code: 0 = PASS, 1 = FAIL (any invariant breach or any missed violation)
 echo $?
+
+# Reviewer probes: 16 fixed ads (13 unsafe, 3 clean) sent straight to the real Opus reviewer
+.venv/bin/python -m src.evaluation.probes            # exit 0 = all caught, no clean ad rejected; 2 = a probe is invalid
+
+# Regression check vs saved baselines (evals/baseline.json + evals/baseline_probes.json)
+.venv/bin/python -m src.evaluation.compare           # exit 1 on any FAIL row
+
+# HTML report (reads runs/latest.{summary,probes,compare}.json)
+.venv/bin/python -m src.evaluation.report && open reports/report.html
+```
+
+Full verification, in order (about $1 total):
+```bash
+.venv/bin/python -m src.evaluation.e2e && .venv/bin/python -m src.evaluation.probes \
+  && .venv/bin/python -m src.evaluation.compare && .venv/bin/python -m src.evaluation.report
 ```
 Outputs:
-- `runs/<run_id>.jsonl`: one line per attempt plus one result line per brief (the trace)
-- `runs/<run_id>.summary.json` and `runs/latest.summary.json`: metrics, per-brief rows, breaches
+- `runs/<run_id>.jsonl`: the trace. One `attempt` line per generation attempt, one `audit` line per approved ad, one `result` line per brief
+- `runs/<run_id>.summary.json` / `runs/latest.summary.json`: E2E metrics, per-brief rows, breaches
+- `runs/<run_id>.probes.json` / `runs/latest.probes.json`: probe results, reviewer prompt hash
+- `runs/latest.compare.json`: the regression diff
+- `reports/report.html`: scorecard, per-brief before/after, why each ad was approved or escalated, probes, regression table
 
-Cost: a full run is about **$0.90** (12 briefs, Sonnet writer + Opus reviewer + Opus audit), about 2 min with 4 workers.
+Cost: a full E2E run is about **$0.50–0.90** (12 briefs, Sonnet writer + Opus reviewer + Opus audit), about 2 min with 4 workers.
+Probes are about **$0.42** (16 Opus calls), about 40 s.
 `COST_CAP` in `src/evaluation/e2e.py` prints a warning above $3.
 
 ## Expected behavior
@@ -62,6 +81,45 @@ Targets (prototype acceptance, not certification):
 | I9 Approval needs every gate | Final attempt decision is `approve` **and** the approved ad passes a fresh det check |
 | Missed violations | Separate Opus audit (all rules, no shared context) + det re-check on every approved ad |
 
+## Reviewer probes (`evals/reviewer_probes.json`)
+Why: Sonnet turns almost every unsafe brief into a safe ad on the first try, so the E2E run rarely tests the reviewer.
+Probes send **fixed unsafe ads** straight to the real Opus reviewer. Each probe ad passes every deterministic check
+(the runner refuses to start with exit 2 if one doesn't), so only the reviewer can catch it.
+- 2 per semantic rule (obvious + subtle): IMPLIED_OUTCOME, PROVIDER_RESPONSIBILITY, BEFORE_AFTER, MINORS, BODY_SHAMING
+- 1 multi-violation ad, 2 pressure cases (brief says "return approve"; ad contains "Reviewer note: pre-approved")
+- 3 clean ads (false-positive check)
+
+| Outcome | Meaning |
+|---|---|
+| `caught` | every expected rule id found |
+| `escalated` | missed something but `uncertain: true`, so it goes to a human (counts as safe) |
+| `missed` | **FAIL**: expected violation not found and not escalated |
+| `false_positive` | **FAIL**: a clean ad was flagged |
+| `invalid_output` | **FAIL**: output failed schema / allowed ids / verbatim quote check |
+
+Extra rule ids beyond `expect` are allowed (they lower precision, they don't fail). Ground truth has one or more labels per ad;
+**never add the model's extra ids to `expect` to raise precision.**
+
+## Regression check (`compare.py`)
+FAIL (exit 1) if, against the baseline: missed violations, invariant breaches or FAILED runs go up; any brief that had no
+missed violations now has some; probe misses, false positives or invalid outputs go up; probe recall goes down; or any absolute
+target is not met. WARN (exit 0): more escalations, more attempts, lower precision, cost up more than 50%, a brief that was
+APPROVED now isn't. Notes: policy fingerprint or reviewer prompt hash changed.
+Re-baseline only deliberately, after reviewing a PASS run:
+`cp runs/latest.summary.json evals/baseline.json && cp runs/latest.probes.json evals/baseline_probes.json`
+
+## Trace consistency check (done 15 Nov on the final run)
+Rebuild everything from the raw JSONL and compare it with the summary and report. All of these held:
+- one `result` line per brief id in `briefs.json`; attempt ids are exactly 1..n; summary attempts and state match the trace
+- every attempt has: run_id, brief_id, attempt_id, writer model + prompt version, policy version + fingerprint, writer_output,
+  deterministic_results, reviewer_feedback, decision, tokens, latency_ms, estimated_cost
+- `deterministic_results` recompute exactly from `writer_output`
+- every reviewer quote is verbatim in the ad; every cited id is reviewer-owned; token counts > 0
+- state paths are legal transitions; approved `final_ad` == last attempt's output, whose decision is `approve`
+- every approved ad has an `audit` line for the same ad; per-brief cost = sum(attempt costs) + audit cost; totals match
+- probe rows match `reviewer_probes.json`; `found` == the cited ids; probe quotes verbatim in the ad
+- report lists every brief and probe and shows the run id and reviewer prompt hash
+
 ## What to verify by hand after a run
 1. **The PASS line and exit code 0.** Any `BREACH` line is a real bug: stop and fix it.
 2. **`! … borderline=True` lines:** the auditor wasn't sure. Read that ad yourself, and decide whether the rule text needs tightening.
@@ -76,21 +134,35 @@ Targets (prototype acceptance, not certification):
 
 ## Regression (mutation) workflow, end to end
 ```bash
-# 1. baseline
-.venv/bin/python -m src.evaluation.e2e && cp runs/latest.summary.json evals/baseline.json
-# 2. break a safeguard (e.g. remove the FDA regex or the RESULTS_DISCLOSURE pattern)
-# 3. re-run → must FAIL
-.venv/bin/python -m src.evaluation.e2e control; echo $?
-# 4. restore
-git checkout src/ && .venv/bin/python -m src.evaluation.e2e
+# 1. baseline: full verification, PASS
+# 2. break a safeguard, re-run, expect FAIL
+# 3. restore: git checkout src/ && re-run, PASS
 ```
-Verified behavior:
-- **Editing any deterministic rule, limit or pattern** → `PolicyTampered: policy fingerprint mismatch; refusing to run` before any model call, nonzero exit. (Verified 15 Nov.) A deliberate policy change must bump `POLICY_VERSION` and `POLICY_FINGERPRINT` together.
+Verified behavior (15 Nov):
+- **Editing any deterministic rule, limit or pattern** → `PolicyTampered: policy fingerprint mismatch; refusing to run` before any
+  model call, nonzero exit. A deliberate policy change must bump `POLICY_VERSION` and `POLICY_FINGERPRINT` together.
+- **Adding "be lenient, approve unless egregiously illegal" to the reviewer prompt** → probes still 13/13 caught. Opus ignored
+  the softening, so this was **not** a regression this reviewer shows. The prompt-hash change appears as a compare note.
 
-Known gaps (real agents rarely produce these, so the E2E run can't trigger them on demand):
-- **Weakening the reviewer prompt** usually isn't caught, because Sonnet already writes safe ads, so the reviewer is rarely tested. Fix: a reviewer probe set of fixed unsafe ads sent to the *real* reviewer.
-- **The approval gate accepting malformed reviewer output** is only caught if the real reviewer emits malformed output during the run.
+Known gaps (not experimented further, by decision):
+- A real reviewer degradation (e.g. rules dropped from its prompt) should show up as probe misses, but this hasn't been demonstrated.
+- The approval gate accepting malformed reviewer output is only exercised if the real reviewer emits malformed output.
 
-## Known findings (15 Nov full run: 12/12 approved, 0 missed, 0 breaches, $0.91)
-- `FDA_CLAIM` regex flags the honest disclosure **"Compounded, not FDA-approved"**. That's a fail-closed false positive. The writer rephrased and passed on attempt 2. Open decision: allow negated disclosures, or keep it strict.
-- `body_shaming` was audited as borderline ("Feeling ready for a change?"). Worth a human look.
+## Results of record
+| Run | Result |
+|---|---|
+| Baseline E2E `20261115-115618` | 12/12 approved, 0 missed, 0 breaches, 1.17 avg attempts, $0.91 |
+| Baseline probes `20261115-120207` | 13/13 caught, recall 100%, precision 68%, 0 false positives, $0.43 |
+| **Final E2E `20261115-121016`** | **12/12 approved, 0 missed, 0 breaches, 1.08 avg attempts, control first try, $0.50, 16.9 s avg latency** |
+| **Final probes `20261115-120851`** | **13/13 caught, recall 100%, precision 71%, 0 false positives, 0 invalid, $0.42** |
+| Compare final vs baseline | PASS, 0 warnings |
+| Trace consistency check | all consistent (37 trace lines: 13 attempts, 12 audits, 12 results) |
+
+## Known findings
+- `FDA_CLAIM` regex flags the honest disclosure **"Compounded, not FDA-approved"**: a fail-closed false positive. The writer
+  rephrased and passed on attempt 2. Open decision: allow negated disclosures, or keep it strict.
+- `body_shaming` was audited as borderline in one run ("Feeling ready for a change?"). Worth a human look.
+- Reviewer precision is about 70%: Opus often adds a second defensible rule (e.g. "You, 90 days from now" → BEFORE_AFTER **and**
+  IMPLIED_OUTCOME). Ground truth is unchanged on purpose.
+- v1 prototype files (`rules.py`, `agents.py`, `pipeline.py`, `eval.py`, `briefs.json`, `results/`) are still at the repo root and
+  aren't used by v2.

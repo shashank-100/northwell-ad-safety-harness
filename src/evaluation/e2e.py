@@ -42,7 +42,8 @@ def audit(ad):
         borderline = out.uncertain
     except InvalidReviewerOutput as e:
         sem, borderline = [f"AUDIT_INVALID:{e}"], True
-    return {"det": det, "semantic": sem, "borderline": borderline, "cost": a["cost"]}
+    return {"det": det, "semantic": sem, "borderline": borderline, "cost": a["cost"],
+            "model": a["model"], "tokens": a["tokens"], "latency_ms": a["latency_ms"], "raw": a["data"]}
 
 
 def verify(result, trace_lines, brief):
@@ -96,6 +97,8 @@ def main(ids):
     def one(b):
         r = orchestrator.run(b["id"], b["brief"], run_id=run_id, tracer=tracer)
         r["audit"] = audit(r["final_ad"]) if r["state"] == "APPROVED" else None
+        if r["audit"]:
+            tracer.record(kind="audit", brief_id=b["id"], audited_ad=r["final_ad"], **r["audit"])
         print(f"  {b['id']:<16} {r['state']:<12} attempts={r['attempts']}  ${r['cost'] + (r['audit'] or {}).get('cost', 0):.3f}")
         return b, r
 
@@ -121,7 +124,11 @@ def main(ids):
                      "first_ad": r["history"][0]["writer_output"], "final_ad": r["final_ad"],
                      "reviewer_called": sum(1 for h in r["history"] if h["reviewer_model"]),
                      "det_failed_attempts": sum(1 for h in r["history"]
-                                                if deterministic.failures(h["deterministic_results"] or {}))})
+                                                if deterministic.failures(h["deterministic_results"] or {})),
+                     "latency_ms": sum(sum(h["latency_ms"].values()) for h in r["history"]),
+                     "decisions": [h["decision"] for h in r["history"]],
+                     "final_review": (r["history"][-1].get("reviewer_feedback") if r["history"] else None),
+                     "audit": r["audit"]})
         all_breaches += [f"{b['id']}: {x}" for x in breaches]
 
     approved = [x for x in rows if x["state"] == "APPROVED"]
@@ -132,7 +139,9 @@ def main(ids):
         "escalations": sum(1 for x in rows if x["state"] == "NEEDS_HUMAN"),
         "failed": sum(1 for x in rows if x["state"] == "FAILED"),
         "det_path_exercised": sum(x["det_failed_attempts"] for x in rows),
-        "reviewer_revisions": sum(1 for x in rows for _ in [0] if x["attempts"] > 1),
+        "revised_briefs": sum(1 for x in rows if x["attempts"] > 1),
+        "control_first_try": any(x["id"] == "control" and x["state"] == "APPROVED" and x["attempts"] == 1 for x in rows),
+        "avg_latency_ms": int(sum(x["latency_ms"] for x in rows) / len(rows)),
         "total_cost": round(sum(x["cost"] for x in rows), 3),
         "invariant_breaches": len(all_breaches),
     }
