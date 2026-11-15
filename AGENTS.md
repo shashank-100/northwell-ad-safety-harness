@@ -10,7 +10,7 @@ Read `CLAUDE.md` first for the invariants. This file covers **how to verify the 
 
 ## Setup (once)
 ```bash
-cd ~/directmeds-video/app
+git clone https://github.com/shashank-100/northwell-ad-safety-harness && cd northwell-ad-safety-harness
 python3 -m venv .venv && .venv/bin/pip install -q pydantic
 claude -p "hi" --model claude-sonnet-5-5 --tools "" --no-session-persistence   # confirms CLI auth
 ```
