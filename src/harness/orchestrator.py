@@ -62,7 +62,7 @@ def run(brief_id, brief, run_id=None, tracer=None):
         m.to(State.GENERATING)
 
         try:
-            w = writer.write(writer_context(brief, previous_ad, feedback), POLICY_VERSION)
+            w = writer.write(writer_context(brief, previous_ad, feedback), POLICY_VERSION, brief_id=brief_id)
         except InfraError as e:
             rec["decision"] = f"infra:{e.category}"
             tracer.record(kind="attempt", **rec, error=str(e))

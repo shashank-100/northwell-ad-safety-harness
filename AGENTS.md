@@ -84,7 +84,7 @@ Targets (prototype acceptance, not certification):
 | I9 Approval needs every gate | Final attempt decision is `approve` **and** the approved ad passes a fresh det check |
 | Missed violations | Separate Opus audit (all rules, no shared context) + det re-check on every approved ad |
 
-## Creative quality (writer-v3.1-creative)
+## Creative quality (writer-v3.4-creative)
 The writer gets positive creative direction, not just rules: find the brief's marketing intent and keep it while
 changing only the unsafe means; pick one concept with an angle and a hook; write a structured visual spec
 (layout, palette, typeface, art direction) from `src/agents/creative_spec.py`. **Policy files are untouched**: same
@@ -95,6 +95,12 @@ changing only the unsafe means; pick one concept with an angle and a hook; write
   must be marked `uncertain` and fails closed to `NEEDS_HUMAN`.
 - `src/evaluation/creative.py` renders 8 different compositions (poster, chat, steps, note, calendar, phone, split,
   doorstep). The artwork only contains the checked ad copy plus fixed neutral UI strings.
+
+- v3.2–v3.4 add: borrow a concrete detail from the brief's *legitimate* goal (never its unsafe element), a soft
+  reproducible starting point per brief (`starting_point()`, hook + layout, overridable), accent palette and emphasis
+  controls, no school-coded props, and no then/now structures (the split layout is never the same scene twice).
+- The main report has a **Creative diversity** section: distinct headlines, CTAs, layouts, angles, body word overlap
+  (shared words between ad bodies; the required disclosures alone set a floor of about 30–40%).
 
 Check after a run: `creative_compare` diversity metrics. Before → after on 15 Nov: distinct headlines 5/12 → 11/12,
 CTAs 1/3 → 3/3, layouts 1 → 5, angles 0 → 6, body word overlap 76% → 42%, still 12/12 approved and 0 missed.
@@ -179,8 +185,19 @@ Known gaps (not experimented further, by decision):
 | **Creative probes `20261115-124252`** (reviewer-v3) | **13/13 caught, recall 100%, precision 71%, 0 false positives, $0.31** |
 | Compare creative run vs baseline | PASS, 1 warning (avg attempts 1.17 → 1.25: bolder copy, more caught slips) |
 | Trace consistency (creative run) | all consistent (39 lines: 15 attempts, 12 audits, 12 results; `creative` on every attempt) |
+| **Current: E2E `20261115-134509`** (writer-v3.4, reviewer-v3) | **11/12 approved, 1 escalated (REVIEWER_UNCERTAIN), 0 missed, 1.0 avg attempts, $0.94**; e2e exits 1 (see below) |
+| **Current: probes `20261115-134416`** (reviewer-v3) | **13/13 caught, recall 100%, 0 false positives** |
+| Current diversity vs rules-only writer | headlines 5/12 → 12/12 · CTAs 1/3 → 3/3 · layouts 1 → 7 · angles 0 → 7 · body overlap 76% → 46% |
+| Trace consistency (current) | all consistent (35 lines: 12 attempts, 11 audits, 12 results) |
 
 ## Known findings
+- **Accepted: about 1 in 12 bold ads escalates to a human.** With writer-v3.4, each full run sends one brief to
+  `NEEDS_HUMAN` (a different one each time: minors, no_results_vary, before_after, weight_promise). Each time Opus
+  approved the copy but set `uncertain: true` on the visual or framing (e.g. "Not 30 days. Start Tuesday." echoes
+  the unsafe brief even while negating it). That's the designed fail-closed outcome. `briefs.json` expects
+  `APPROVED` for every brief and the eval is intentionally unchanged, so `e2e` and `compare` report it as an
+  `EXPECT` breach and exit 1. Read `BREACH … EXPECT state NEEDS_HUMAN` lines as escalations, not safety failures;
+  safety is 0 missed violations and probes 13/13. A breach of an actual invariant (I1–I9) is never acceptable.
 - **Creative vs safety tension, caught by the eval.** A creative smoke run turned "target prom" into "Save the date…
   Wedding invites are landing." The production reviewer approved it; the independent auditor flagged it as an implied
   before/after timeline ("look different by the big day"). The fix went into the writer's direction (no

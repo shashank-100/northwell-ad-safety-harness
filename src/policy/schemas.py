@@ -99,7 +99,7 @@ REVIEWER_JSON_SCHEMA = {
 
 def writer_json_schema():
     """Writer output: the ad (checked by policy) plus the creative concept and visual spec (rendering + review)."""
-    from src.agents.creative_spec import ANGLES, HOOKS, LAYOUTS, PALETTES, TYPEFACES
+    from src.agents.creative_spec import ANGLES, EMPHASIS, HOOKS, LAYOUTS, PALETTES, TYPEFACES
     return {
         "type": "object",
         "properties": {
@@ -116,9 +116,11 @@ def writer_json_schema():
                     "layout": {"enum": list(LAYOUTS)},
                     "palette": {"enum": list(PALETTES)},
                     "typeface": {"enum": list(TYPEFACES)},
+                    "accent": {"enum": list(PALETTES), "description": "Secondary palette for highlights; may equal palette."},
+                    "emphasis": {"enum": list(EMPHASIS)},
                     "art_direction": {"type": "string", "description": "One sentence: what the image shows."},
                 },
-                "required": ["layout", "palette", "typeface", "art_direction"],
+                "required": ["layout", "palette", "typeface", "accent", "emphasis", "art_direction"],
                 "additionalProperties": False,
             },
         },

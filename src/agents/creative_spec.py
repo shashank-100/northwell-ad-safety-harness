@@ -9,7 +9,8 @@ LAYOUTS = {
     "note": "A handwritten sticky note or journal page. Personal, warm, first-person.",
     "calendar": "A week view or routine planner. Fitting care into a real schedule.",
     "phone": "An app screen mockup: booking, messaging, or a refill reminder.",
-    "split": "Two-panel contrast of situations (old way vs. new way of getting care). Never bodies, never before/after.",
+    "split": "Two-panel contrast of two different ways of getting care (clinic waiting room vs. phone visit). Never the "
+             "same person, place or scene shown twice, never then/now, never bodies. Don't use for before/after briefs.",
     "doorstep": "Discreet package on a doorstep or mailbox. Privacy and convenience.",
 }
 PALETTES = {
@@ -26,3 +27,13 @@ TYPEFACES = ("serif", "grotesk", "rounded", "handwritten", "mono")
 ANGLES = ("convenience", "privacy", "expert guidance", "transparency", "routine", "myth-busting",
           "empathy", "momentum", "access", "confidence", "seasonal moment")
 HOOKS = ("question", "contrast", "scenario", "permission", "curiosity", "direct address", "reframe", "list")
+
+EMPHASIS = ("headline-led", "image-led", "balanced")
+
+
+def starting_point(brief_id):
+    """A soft, reproducible nudge so parallel briefs don't all land on the same idea. The writer may override it."""
+    import hashlib
+    h = int(hashlib.sha256(brief_id.encode()).hexdigest(), 16)
+    hooks, layouts = list(HOOKS), list(LAYOUTS)
+    return hooks[h % len(hooks)], layouts[(h // 7) % len(layouts)]

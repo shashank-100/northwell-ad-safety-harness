@@ -26,7 +26,7 @@ def _chat(h, a, b, ink, f):
     return f"""<div class="v chat" style="background:{a};font-family:{f}">
 <div class="top" style="color:{ink}">Northwell Rx · Messages</div>
 <p class="me" style="background:{b};color:{ink}">{esc(h)}</p>
-<p class="them">Not weird at all. A licensed provider will review your history and reply.</p>
+<p class="them">A licensed provider will review your history and reply.</p>
 <p class="typing"><i></i><i></i><i></i></p></div>"""
 
 
@@ -81,14 +81,17 @@ def render_ad(ad, creative, stamp="", rejected=False, marked_html=None):
     """A feed card: primary text (body) above the artwork, headline + CTA below, as on real social placements."""
     v = (creative or {}).get("visual") or {}
     a, b, ink = PALETTES.get(v.get("palette"), PALETTES["sage"])
+    if v.get("accent") and v.get("accent") != v.get("palette"):
+        b = PALETTES.get(v["accent"], PALETTES["sage"])[1]  # accent colour drives highlights, bubbles, chips
     f = FONTS.get(v.get("typeface"), FONTS["grotesk"])
     art = LAYOUT_RENDER.get(v.get("layout"), _poster)(ad["headline"], a, b, ink, f)
+    art = art.replace('class="v ', f'class="v em-{esc(v.get("emphasis", "balanced"))} ', 1)
     body = marked_html or esc(ad["body"])
     st = f'<span class="stamp {"no" if rejected else "yes"}">{esc(stamp)}</span>' if stamp else ""
     concept = ""
     if creative:
         concept = (f'<div class="concept"><b>{esc(creative.get("concept", ""))}</b> · {esc(creative.get("angle", ""))} · '
-                   f'{esc(creative.get("hook", ""))} hook · {esc(v.get("layout", ""))}'
+                   f'{esc(creative.get("hook", ""))} hook · {esc(v.get("layout", ""))} · {esc(v.get("emphasis", ""))}'
                    f'<i>{esc(v.get("art_direction", ""))}</i></div>')
     return f"""<figure class="fcard{' rejected' if rejected else ''}">
 <header><span class="avatar">N</span><span><b>Northwell Rx</b><small>Sponsored</small></span>{st}</header>
@@ -115,6 +118,8 @@ CSS = """
 .fcard .concept i{display:block;margin-top:3px;color:#888}
 .v{position:relative;aspect-ratio:1/1;overflow:hidden;display:flex}
 .v h3{margin:0;letter-spacing:-.01em}
+.v.em-headline-led h3{font-size:1.25em} .v.em-image-led h3{font-size:.8em;opacity:.9}
+.v.em-image-led .paper,.v.em-image-led .device,.v.em-image-led .week,.v.em-image-led ol{transform:scale(1.06)}
 .poster{flex-direction:column;justify-content:flex-end;padding:26px}
 .poster h3{font-size:38px;line-height:1.02;font-weight:800} .poster .bar{width:56px;height:8px;margin-bottom:16px;border-radius:4px}
 .chat{flex-direction:column;justify-content:center;gap:10px;padding:22px}

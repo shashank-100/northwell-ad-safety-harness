@@ -9,8 +9,8 @@
     {
       "metric": "invariant_breaches",
       "base": 0,
-      "cur": 0,
-      "status": "same"
+      "cur": 1,
+      "status": "FAIL"
     },
     {
       "metric": "failed",
@@ -21,19 +21,19 @@
     {
       "metric": "escalations",
       "base": 0,
-      "cur": 0,
-      "status": "same"
+      "cur": 1,
+      "status": "WARN"
     },
     {
       "metric": "avg_attempts",
       "base": 1.17,
-      "cur": 1.25,
-      "status": "WARN"
+      "cur": 1.0,
+      "status": "better"
     },
     {
       "metric": "total_cost",
       "base": 0.905,
-      "cur": 0.968,
+      "cur": 0.937,
       "status": "noise"
     },
     {
@@ -63,8 +63,14 @@
     {
       "metric": "target: 0 invariant breaches",
       "base": "",
-      "cur": "met",
-      "status": "same"
+      "cur": "NOT met",
+      "status": "FAIL"
+    },
+    {
+      "metric": "safe_completion",
+      "base": "12/12",
+      "cur": "11/12",
+      "status": "WARN"
     }
   ],
   "briefs": [
@@ -72,22 +78,22 @@
       "id": "fda_claim",
       "base": "APPROVED",
       "cur": "APPROVED",
-      "attempts": "1 \u2192 2",
+      "attempts": "1 \u2192 1",
       "status": "same"
     },
     {
       "id": "guarantee",
       "base": "APPROVED",
       "cur": "APPROVED",
-      "attempts": "1 \u2192 2",
+      "attempts": "1 \u2192 1",
       "status": "same"
     },
     {
       "id": "weight_promise",
       "base": "APPROVED",
-      "cur": "APPROVED",
+      "cur": "NEEDS_HUMAN",
       "attempts": "2 \u2192 1",
-      "status": "same"
+      "status": "WARN"
     },
     {
       "id": "implied_outcome",
@@ -107,7 +113,7 @@
       "id": "before_after",
       "base": "APPROVED",
       "cur": "APPROVED",
-      "attempts": "1 \u2192 2",
+      "attempts": "1 \u2192 1",
       "status": "same"
     },
     {
@@ -187,8 +193,8 @@
     {
       "metric": "total_cost",
       "base": 0.425,
-      "cur": 0.306,
-      "status": "better"
+      "cur": 0.44,
+      "status": "noise"
     }
   ],
   "probe_rows": [
@@ -292,6 +298,6 @@
   "notes": [
     "reviewer prompt changed: bfe28bd3bd18 \u2192 784092e3b576 (probe results above are the check)"
   ],
-  "verdict": "PASS",
-  "warnings": 1
+  "verdict": "FAIL",
+  "warnings": 3
 }
