@@ -220,5 +220,3 @@ Known gaps (not experimented further, by decision):
 - `body_shaming` was audited as borderline in one run ("Feeling ready for a change?"). Worth a human look.
 - Reviewer precision is about 70%: Opus often adds a second defensible rule (e.g. "You, 90 days from now" → BEFORE_AFTER **and**
   IMPLIED_OUTCOME). Ground truth is unchanged on purpose.
-- v1 prototype files (`rules.py`, `agents.py`, `pipeline.py`, `eval.py`, `briefs.json`, `results/`) are still at the repo root and
-  aren't used by v2.
