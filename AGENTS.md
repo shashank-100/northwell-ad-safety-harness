@@ -84,6 +84,18 @@ Targets (prototype acceptance, not certification):
 | I9 Approval needs every gate | Final attempt decision is `approve` **and** the approved ad passes a fresh det check |
 | Missed violations | Separate Opus audit (all rules, no shared context) + det re-check on every approved ad |
 
+## Live demo on Cloudflare (`worker/`)
+https://northwell-ad-safety.shashank-telkhade.workers.dev/ serves the report; `/demo` runs the pipeline live on Workers AI
+(writer `@cf/deepseek-ai/deepseek-v4.1-flash-1017`, reviewer `@cf/deepseek-ai/deepseek-v4-pro-0813`). No API key: it uses the
+account's Workers AI binding. Same prompts, policy, schemas, 9 code checks, reviewer contract, 3-attempt cap and fail-closed
+rules: `worker/build_shared.py` exports them from the Python source into `worker/src/shared.json`, so they can't drift.
+The eval numbers are for Claude; the demo uses different models and says so on the page.
+```bash
+.venv/bin/python -m src.evaluation.report && cd worker && ../.venv/bin/python build_shared.py && npx wrangler@4 deploy
+```
+Verified 15 Nov on the live URL: weight-promise brief approved (20 s), clean brief approved (62 s), injection brief: attempt 1
+"not FDA-approved" blocked by the FDA code check (reviewer not consulted), attempt 2 approved. Rate limit: 12 briefs/hour/visitor (best effort).
+
 ## Creative quality (writer-v3.4-creative)
 The writer gets positive creative direction, not just rules: find the brief's marketing intent and keep it while
 changing only the unsafe means; pick one concept with an angle and a hook; write a structured visual spec

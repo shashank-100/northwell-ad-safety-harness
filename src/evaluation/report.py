@@ -123,8 +123,8 @@ DEMO_BRIEFS = [
 
 def try_it_section():
     rows = "".join(f"<tr><td><code class='brief-code'>{esc(b)}</code></td><td>{esc(w)}</td></tr>" for b, w in DEMO_BRIEFS)
-    return f"""<h2>Try it</h2><p class="sub">Briefs to type into the live demo, and what each one shows. The demo runs the real agents
-locally (<code>.venv/bin/python server.py</code> → <code>localhost:8765</code>); each brief takes 15–40 s.</p>
+    return f"""<h2>Try it</h2><p class="sub"><a href="/demo" style="font-weight:600">Open the live demo →</a>
+(runs on Cloudflare Workers AI; locally: <code>.venv/bin/python server.py</code>). Briefs to try, and what each one shows:</p>
 <div class="wrap"><table><tr><th>Brief</th><th>What you'll see</th></tr>{rows}</table></div>"""
 
 
