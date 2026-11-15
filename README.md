@@ -1,6 +1,8 @@
 # Northwell Rx — Agentic Ad Safety Harness
 
 A two-agent pipeline that writes healthcare ad copy and refuses to approve anything unsafe.
+
+**Live report:** https://northwell-ad-safety.shashank-telkhade.workers.dev/
 Northwell Rx is a fictional telehealth brand.
 
 ```
