@@ -26,8 +26,8 @@ Build an auditable two-agent healthcare ad pipeline.
 - Strict structured outputs.
 - Explicit exception handling.
 - No silent exception swallowing.
-- Unit tests for policy rules.
-- Regression tests for safety invariants.
+- No unit tests and no mocks. Verify by running the real agents end to end (see AGENTS.md).
+- Every safety invariant is checked against the real JSONL trace after each run.
 - Keep model calls isolated.
 
 ## Evaluation
