@@ -288,6 +288,7 @@ code{{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--lin
 <h2>Escalations &amp; human review</h2><ul>{escalations}</ul>
 {probe_html}
 {cmp_html}
+<p class="dim" style="margin-top:40px;font-size:13px">Secondary: <a href="creative_before_after.html" style="color:inherit">creative before/after vs. the original rules-only writer</a></p>
 </main></body></html>"""
 
 
